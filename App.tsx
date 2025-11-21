@@ -40,8 +40,7 @@ const createInitialWater = (): WaterLog => ({
 const createDailyLog = (date: string): DailyLog => ({
   date,
   weight: 0,
-  steps: 0,
-  sleepHours: 0,
+  bodyMetrics: null,
   nutrition: createInitialNutrition(),
   water: createInitialWater(),
   aiReport: null
@@ -78,11 +77,25 @@ export default function App() {
 
     if (savedUserData) {
       const parsedUser = JSON.parse(savedUserData);
-      // Ensure legacy data has waterPresets
       if (!parsedUser.waterPresets) parsedUser.waterPresets = [150, 250, 500, 700];
       setUserData(parsedUser);
     }
-    if (savedLogs) setLogs(JSON.parse(savedLogs));
+    if (savedLogs) {
+      const parsedLogs = JSON.parse(savedLogs);
+      
+      // Data Migration: Ensure all logs have new fields (history, bodyMetrics)
+      Object.keys(parsedLogs).forEach(key => {
+        const log = parsedLogs[key];
+        if (log.water && !Array.isArray(log.water.history)) {
+          log.water.history = [];
+        }
+        if (log.bodyMetrics === undefined) {
+          log.bodyMetrics = null;
+        }
+      });
+      
+      setLogs(parsedLogs);
+    }
     
     setLoaded(true);
   }, []);
@@ -93,18 +106,6 @@ export default function App() {
     localStorage.setItem('noble_userData', JSON.stringify(userData));
     localStorage.setItem('noble_logs', JSON.stringify(logs));
   }, [userData, logs, loaded]);
-
-  // Auto-update date check (in case user keeps app open overnight)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const today = getToday();
-      if (selectedDate === today) return; // If user is looking at today, keep it. 
-      // If user selected a different date manually, we don't force switch, 
-      // but usually apps auto-switch to "Today" if it becomes a new day.
-      // For now, we just provide the correct today string to the logic.
-    }, 60000);
-    return () => clearInterval(timer);
-  }, [selectedDate]);
 
   const getCurrentLog = (): DailyLog => {
     if (logs[selectedDate]) return logs[selectedDate];
@@ -133,6 +134,7 @@ export default function App() {
             onUpdateLog={updateCurrentLog}
             date={selectedDate}
             setDate={setSelectedDate}
+            allLogs={logs}
           />
         );
       case 'nutrition':

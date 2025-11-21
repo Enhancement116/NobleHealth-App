@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { API_KEY } from "../constants";
 import { UserData, DailyLog } from "../types";
@@ -80,33 +79,34 @@ export const generateHealthReport = async (userData: UserData, dailyLog: DailyLo
 
   const displayWeight = dailyLog.weight > 0 ? dailyLog.weight : userData.currentWeight;
   const nutrition = dailyLog.nutrition;
+  const bm = dailyLog.bodyMetrics;
+
+  // Construct a detailed coach prompt
+  const bodyMetricsText = bm ? `
+    Detailed Body Composition Input:
+    - Body Fat: ${bm.bodyFat}%
+    - Muscle Mass: ${bm.muscleMass} kg
+    - BMR (Basal Metabolic Rate): ${bm.bmr} kcal
+    - Calculated BMI: ${(displayWeight / ((1.75) * (1.75))).toFixed(1)} (Assuming avg height if unknown)
+  ` : 'No body composition data available.';
 
   const prompt = `
-    Act as a high-end, polite, and motivating personal health coach for a VIP client.
+    Act as a top-tier, strict yet encouraging Celebrity Fitness Coach & Nutritionist.
     Language: Traditional Chinese (Taiwan).
-    Tone: Professional, encouraging, exclusive, slightly luxurious (Noble).
+    Tone: Professional, High-end (Noble), Direct, Analytical.
     
-    Date of Report: ${dailyLog.date}
-    
-    User Profile:
+    User Data for ${dailyLog.date}:
     - Current Weight: ${displayWeight} kg (Goal: ${userData.weightGoal} kg)
+    ${bodyMetricsText}
     
-    Daily Activity:
-    - Steps: ${dailyLog.steps} (Zepp Life)
-    - Sleep: ${dailyLog.sleepHours} hours (Zepp Life)
-    - Water Intake: ${dailyLog.water.current} / ${dailyLog.water.goal} ml
-    
-    Nutrition Intake Today:
-    - Total Calories: ${nutrition.calories} / ${nutrition.limits.calories} kcal
-    - Sugar: ${nutrition.sugar} / ${nutrition.limits.sugar} g
-    - Protein: ${nutrition.protein} g
-    - Meals Recorded: ${nutrition.meals.map(m => m.name).join(', ') || 'None'}
-    
-    Task:
-    1. Summarize the health status of this specific day.
-    2. Provide specific compliments on what they did well (e.g., drinking enough water, low sugar).
-    3. Provide constructive advice for tomorrow to reach the weight goal.
-    4. Keep the length under 200 words.
+    Tasks:
+    1. **Body Type Analysis**: Based on Weight, Body Fat %, and Muscle Mass, define their body type (e.g., "Skinny Fat 泡芙人", "Obese 肥胖型", "Athletic 健壯型", "High Muscle/High Fat 壯碩型"). Be honest but professional.
+    2. **Dietary Advice**: Give a specific macronutrient strategy for tomorrow.
+    3. **Workout Menu**: Provide a specific workout routine for tomorrow (e.g., "Morning: Fasted Cardio 20min, Evening: Chest & Triceps").
+    4. **Short Summary**: A 1-sentence motivating punchline.
+
+    Keep the total response concise (under 250 words) but dense with value. 
+    Format with clear bullet points or emojis.
   `;
 
   try {

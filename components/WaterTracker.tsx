@@ -12,24 +12,43 @@ interface Props {
 export const WaterTracker: React.FC<Props> = ({ water, onUpdate, userData, setUserData }) => {
   const [isEditingPresets, setIsEditingPresets] = useState(false);
   const [tempPresets, setTempPresets] = useState<string[]>([]);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  // Ensure history is always an array (handling legacy data)
+  const history = Array.isArray(water.history) ? water.history : [];
 
   const addWater = (amount: number) => {
     onUpdate({
       ...water,
       current: water.current + amount,
-      history: [...water.history, amount]
+      history: [...history, amount]
     });
   };
 
   const undoLast = () => {
-    if (water.history.length === 0) return;
-    const lastAmount = water.history[water.history.length - 1];
-    const newHistory = water.history.slice(0, -1);
+    if (history.length === 0) return;
+    const lastAmount = history[history.length - 1];
+    const newHistory = history.slice(0, -1);
     onUpdate({
       ...water,
       current: Math.max(0, water.current - lastAmount),
       history: newHistory
     });
+  };
+
+  const resetAll = () => {
+    if (confirmReset) {
+        onUpdate({
+            ...water,
+            current: 0,
+            history: []
+        });
+        setConfirmReset(false);
+    } else {
+        setConfirmReset(true);
+        // Auto cancel confirm state after 3 seconds
+        setTimeout(() => setConfirmReset(false), 3000);
+    }
   };
 
   // Preset Management
@@ -56,22 +75,39 @@ export const WaterTracker: React.FC<Props> = ({ water, onUpdate, userData, setUs
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="relative">
+      <div className="relative z-20">
         <h2 className="text-xl font-light text-white text-center uppercase tracking-widest">水分補充</h2>
-        {/* Undo Button - Top Left/Right absolute? Or integrated nearby */}
-        {water.history.length > 0 && (
-           <button 
-            onClick={undoLast}
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-noble-muted hover:text-red-400 transition-colors flex items-center gap-1"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
-            撤銷
-          </button>
-        )}
+        
+        {/* Top Actions Container */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-3 items-center">
+            {history.length > 0 && !confirmReset && (
+            <button 
+                onClick={undoLast}
+                className="text-xs text-noble-muted hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5"
+            >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                撤銷
+            </button>
+            )}
+            
+            {water.current > 0 && (
+                <button 
+                    onClick={resetAll}
+                    className={`text-xs transition-all duration-200 flex items-center gap-1 px-2 py-1 rounded ${
+                      confirmReset 
+                        ? 'bg-red-900/30 text-red-400 font-bold border border-red-500/50' 
+                        : 'text-red-900/70 hover:text-red-500 hover:bg-red-500/10'
+                    }`}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    {confirmReset ? '確定歸零?' : '重置'}
+                </button>
+            )}
+        </div>
       </div>
 
       {/* Visualization Circle */}
-      <div className="relative w-64 h-64 mx-auto">
+      <div className="relative w-64 h-64 mx-auto z-10">
         {/* Background Circle */}
         <div className="absolute inset-0 rounded-full border-4 border-noble-border"></div>
         
