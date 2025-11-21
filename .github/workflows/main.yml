@@ -2,7 +2,8 @@ name: Deploy Vite App to GitHub Pages
 
 on:
   push:
-    branches: ["main"] # 確保這裡跟您的主分支名稱一樣，通常是 main 或 master
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,19 +20,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+
+      # 修正點：使用 install 而不是 ci，比較不會因為缺檔報錯
       - name: Install dependencies
-        run: npm ci # 或是 npm install
+        run: npm install
+
       - name: Build
         run: npm run build
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist # Vite 預設打包輸出的資料夾是 dist
+          path: ./dist
 
   deploy:
     environment:
