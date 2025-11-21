@@ -25,9 +25,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # 注意：我把 cache: 'npm' 拿掉了，這樣就不會檢查 lock file
 
-      # 修正點：使用 install 而不是 ci，比較不會因為缺檔報錯
       - name: Install dependencies
         run: npm install
 
